@@ -24,7 +24,7 @@ export const initDatabase = () => {
 
 export const insertRows = () => {
   sequelize
-    .sync({ force: true })  // Sync models with database
+    .sync({ force: true }) // Sync models with database
 
     //   sequelize
     //     .sync({ force: true })
@@ -121,11 +121,9 @@ export const insertRows = () => {
       //   },
       // ]
 
-      const students = [
-      ]
+      const students = []
 
-      const reservations = [
-      ]
+      const reservations = []
 
       // Create subjects
       Subject.bulkCreate(subjects).then(() => {
