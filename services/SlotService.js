@@ -66,6 +66,12 @@ class SlotService {
         const currentWeek = [];
         const dates = [];
 
+        console.log("------------", await Slot.findAll({
+            where: {
+                subjectTeacherId: Number(subjectTeacherId)
+            },
+        }))
+
         const slots = await this.getAvailableSlotsCurrentWeek(Number(subjectTeacherId))
 
         slots.forEach((slot) => {
@@ -102,7 +108,15 @@ class SlotService {
         return regex.test(slotString)
     }
 
-    createSlot(slotString, date) {
+    async createSlot([startTime, endTime], date, subjectTeacherId) {
+        const formattedDate = `${date.getFullYear().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+
+        return await Slot.create({
+            startTime,
+            endTime,
+            date: formattedDate,
+            subjectTeacherId
+        })
 
     }
 }

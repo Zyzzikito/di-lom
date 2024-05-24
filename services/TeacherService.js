@@ -1,33 +1,48 @@
-import { SubjectTeacher, Teacher } from '../models.js'
+import {SubjectTeacher, Teacher} from '../models.js'
 
 class TeacherService {
-  async getTeachersBySubjectId(subjectId) {
-    const teachers = await Teacher.findAll({
-      raw: false,
-      nest: true,
-      include: [
-        {
-          model: SubjectTeacher,
-          where: {
-            subjectId,
-          },
-        },
-      ],
-    })
+    async getTeacherByTelegramId(telegramId) {
+        return await Teacher.findOne({
+            where: {
+                telegramId,
+            },
+        })
+    }
 
-    return teachers
-  }
+    async getTeachersBySubjectId(subjectId) {
+        const teachers = await Teacher.findAll({
+            raw: false,
+            nest: true,
+            include: [
+                {
+                    model: SubjectTeacher,
+                    where: {
+                        subjectId,
+                    },
+                },
+            ],
+        })
 
-  getTeacherKeyboard(teacherId, subjectId) {
-    return [
-      [
-        {
-          text: 'Подробнее',
-          callback_data: ['teacher', teacherId, subjectId].join(':'),
-        },
-      ],
-    ]
-  }
+        return teachers
+    }
+
+    getTeacherKeyboard(teacherId, subjectId) {
+        return [
+            [
+                {
+                    text: 'Подробнее',
+                    callback_data: ['teacher', teacherId, subjectId].join(':'),
+                },
+            ],
+        ]
+    }
+
+    async createTeacher(teacher) {
+        return Teacher.create(teacher, {
+            raw: false,
+            nest: true,
+        })
+    }
 }
 
 export default new TeacherService()

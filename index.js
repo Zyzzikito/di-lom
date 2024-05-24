@@ -4,10 +4,11 @@ import {commandsStudent, commandsTeacher} from './constants/commands.js'
 import CallbackQueries from './ui/callbackQuery/CallbackQueries.js'
 import CommandsStudent from './ui/commands/CommandsStudent.js'
 import dotenv from 'dotenv'
-import {Student} from './models.js'
 import StudentService from './services/StudentService.js'
 import CommandsTeacher from "./ui/commands/CommandsTeacher.js";
 import SlotService from "./services/SlotService.js";
+import SubjectService from "./services/SubjectService.js";
+import TeacherService from "./services/TeacherService.js";
 
 dotenv.config()
 
@@ -17,37 +18,55 @@ const TOKEN_TEACHER = process.env.TOKEN_TEACHER
 initDatabase()
 
 export let user = null
-export let isInputSlot = false
+export let inputSlotData = null
+export let times = null
 
-export const setIsInputSlot = (value) => {
-    isInputSlot = value
+export let setTimes = (data) => {
+    if (data === null) return times = null
+    times = data.split("-")
+}
+
+export const setInputSlotData = (data) => {
+    inputSlotData = data
 }
 
 const authUser = async (msg, role) => {
     if (user === null) {
         const telegramId = msg.message.chat.id
 
-        const student = await StudentService.getStudentByTelegramId(telegramId)
+        let client = null
 
-        console.log(JSON.stringify(msg.message, null, 2))
+        if (role === "STUDENT") client = await StudentService.getStudentByTelegramId(telegramId)
+        if (role === "TEACHER") client = await TeacherService.getTeacherByTelegramId(telegramId)
 
-        if (student) {
-            user = {
+        if (client)
+            return user = {
                 role: role,
-                ...student,
+                ...client,
             }
-            return
-        }
-        const newStudent = {
+
+        const newTeacher = {
             name: msg.message.chat.first_name,
             telegramId,
         }
 
-        const createdStudent = await Student.create(newStudent)
+        let createdClient = null
+
+        console.log("------------------------------", newTeacher)
+
+        if (role === "STUDENT") createdClient = await StudentService.createStudent(newTeacher)
+        if (role === "TEACHER") createdClient = await TeacherService.createTeacher({
+            ...newTeacher,
+            description: "",
+            fullDescription: "",
+            format: "",
+        }, {})
+
         user = {
             role: role,
-            ...createdStudent,
+            ...createdClient,
         }
+
     }
 }
 
@@ -109,24 +128,29 @@ bot_student.launch()
 const bot_teacher = new Telegraf(TOKEN_TEACHER, {})
 
 bot_teacher.command('cancel', async (ctx) => {
-    await authUser(ctx, "STUDENT")
-    setIsInputSlot(false)
+    await authUser(ctx, "TEACHER")
+    setInputSlotData(null)
 })
 bot_teacher.command('create_slot', async (ctx) => {
-    await authUser(ctx, "STUDENT")
+    await authUser(ctx, "TEACHER")
     await CommandsTeacher.handleCreateSlot(ctx)
 })
 
 bot_teacher.on('message', async (ctx) => {
     try {
         await authUser(ctx, "TEACHER")
-        if (isInputSlot) {
+        if (inputSlotData !== null) {
             if (!SlotService.validateSlotString(ctx.message.text)) {
                 return ctx.reply('Формат слота неправильный. Попробуйте еще раз.\nДля выхода напиши: /cancel')
             }
-            setIsInputSlot(false)
-            await SlotService.createSlot(ctx.message.text)
-            ctx.reply("Слот успешно добавлен!")
+            const subjectsKeyboard = await SubjectService.getSubjectsKeyboard('choose_subject_and_create_slot')
+            setTimes(ctx.message.text)
+
+            ctx.reply("Выберите предмет", {
+                reply_markup: {
+                    inline_keyboard: subjectsKeyboard,
+                }
+            })
             return;
         }
         await CommandsTeacher.handleWelcome(ctx)
@@ -144,6 +168,7 @@ bot_teacher.on('callback_query', async (ctx) => {
 
         const handlers = {
             create_slot_form: CallbackQueries.handleCreateSlotForm,
+            choose_subject_and_create_slot: CallbackQueries.handleChooseSubjectAndCreateSlot,
         }
         const handler = handlers[key]
         await handler(ctx, ...values)

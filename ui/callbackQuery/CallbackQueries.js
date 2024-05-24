@@ -5,7 +5,7 @@ import ReservationService from '../../services/ReservationService.js'
 import SlotService from '../../services/SlotService.js'
 import SubjectTeacherService from '../../services/SubjectTeacherService.js'
 import TeacherService from '../../services/TeacherService.js'
-import {isInputSlot, setIsInputSlot, user} from '../../index.js'
+import {inputSlotData, setInputSlotData, setTimes, times, user} from '../../index.js'
 
 class CallbackQueries {
     async handleSubject(ctx, subjectIdString) {
@@ -29,7 +29,7 @@ class CallbackQueries {
 
     async handleTeacher(ctx, value, value2) {
         const teacherId = Number(value)
-        const {name, surname, patronymic, fullDescription} =
+        const {name, fullDescription} =
             await Teacher.findByPk(teacherId)
 
         const subjectId = Number(value2)
@@ -38,7 +38,7 @@ class CallbackQueries {
             teacherId,
         )
 
-        ctx.reply(`${surname} ${name} ${patronymic}\n${fullDescription}`, {
+        ctx.reply(`${name}\n${fullDescription}`, {
             reply_markup: {
                 inline_keyboard: SubjectTeacherService.getSubjectTeacherKeyboard(
                     subjectTeacher.id,
@@ -107,10 +107,33 @@ class CallbackQueries {
     }
 
     async handleCreateSlotForm(ctx, date) {
-        setIsInputSlot(true)
+        setInputSlotData(date)
         ctx.reply(`Заявка на ${date}\nВведите время начала и конца занятия в формате:
 10:00-11:30`)
     }
+
+    async handleChooseSubjectAndCreateSlot(ctx, subjectIdString) {
+        const subjectId = Number(subjectIdString)
+
+        if (!times || !inputSlotData) {
+            ctx.reply('Вы уже создали занятие')
+            setTimes(null)
+            setInputSlotData(null)
+            return;
+        }
+
+        let subjectTeacher = await SubjectTeacherService.getSubjectTeacherId(subjectId, user.id)
+        if (!subjectTeacher) {
+            subjectTeacher = await SubjectTeacherService.createSubjectTeacher(subjectId, user.id)
+        }
+
+        await SlotService.createSlot(times, new Date(inputSlotData), subjectTeacher.id)
+
+        setTimes(null)
+        setInputSlotData(null)
+    }
 }
 
-export default new CallbackQueries()
+export default new
+
+CallbackQueries()

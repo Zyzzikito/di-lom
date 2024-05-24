@@ -17,7 +17,10 @@ class CommandsTeacher {
 
         ctx.reply('Выберите день недели', {
             reply_markup: {
-                inline_keyboard: generateDaysWeekKeyboard((date) => ["create_slot_form", formatter.format(date)])
+                inline_keyboard:
+                    generateDaysWeekKeyboard((date) =>
+                        ["create_slot_form", formatter.format(date).split('/').join('-')]
+                    )
             }
         })
     }
