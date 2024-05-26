@@ -124,16 +124,23 @@ class CallbackQueries {
 
         let subjectTeacher = await SubjectTeacherService.getSubjectTeacherId(subjectId, user.id)
         if (!subjectTeacher) {
-            subjectTeacher = await SubjectTeacherService.createSubjectTeacher(subjectId, user.id)
+            await SubjectTeacherService.createSubjectTeacher(subjectId, user.id)
+            subjectTeacher = await SubjectTeacherService.getSubjectTeacherId(subjectId, user.id)
         }
 
         await SlotService.createSlot(times, new Date(inputSlotData), subjectTeacher.id)
 
+        ctx.reply('Слот создан')
+
         setTimes(null)
         setInputSlotData(null)
     }
+
+    async handleDeleteSlot(ctx, slotId) {
+        if (!slotId) return ctx.reply('Вы не выбрали слот')
+        await SlotService.deleteSlot(Number(slotId))
+        ctx.reply('Слот удален')
+    }
 }
 
-export default new
-
-CallbackQueries()
+export default new CallbackQueries()

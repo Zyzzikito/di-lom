@@ -1,5 +1,5 @@
 import {Op} from 'sequelize'
-import {Slot} from '../models.js'
+import {Slot, Subject, SubjectTeacher, Teacher} from '../models.js'
 import ReservationService from "./ReservationService.js";
 
 const formatter = new Intl.DateTimeFormat("en-US", {
@@ -111,6 +111,8 @@ class SlotService {
     async createSlot([startTime, endTime], date, subjectTeacherId) {
         const formattedDate = `${date.getFullYear().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
 
+        console.log('---------------subjectTeacherId', subjectTeacherId)
+
         return await Slot.create({
             startTime,
             endTime,
@@ -118,6 +120,35 @@ class SlotService {
             subjectTeacherId
         })
 
+    }
+
+    async getSlotsByTeacherId(teacherId) {
+        return await Slot.findAll({
+            raw: true,
+            nest: true,
+            include: [{
+                model: SubjectTeacher,
+                attributes: ['subjectId', 'teacherId'],
+                where: {
+                    teacherId,
+                },
+                include:
+                    [
+                        {model: Subject, attributes: ['name']},
+                        {
+                            model: Teacher, attributes: ['name', 'id'],
+                        },
+                    ],
+            }]
+        });
+    }
+
+    async deleteSlot(slotId) {
+        return await Slot.destroy({
+            where: {
+                id: slotId
+            }
+        })
     }
 }
 

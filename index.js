@@ -84,7 +84,6 @@ bot_student.command('reservations', async (ctx) => {
         await CommandsStudent.handleReservations(ctx)
     } catch (e) {
         console.error(e)
-        ctx.answerCbQuery('Error occurred. Please try again.')
     }
 })
 bot_student.on('message', async (ctx) => {
@@ -93,7 +92,6 @@ bot_student.on('message', async (ctx) => {
         await CommandsStudent.handleWelcome(ctx)
     } catch (e) {
         console.error(e)
-        ctx.answerCbQuery('Error occurred. Please try again.')
     }
 })
 
@@ -116,7 +114,6 @@ bot_student.on('callback_query', async (ctx) => {
         ctx.answerCbQuery()
     } catch (e) {
         console.error(e)
-        ctx.answerCbQuery('Error occurred. Please try again.')
     }
 })
 
@@ -134,6 +131,11 @@ bot_teacher.command('cancel', async (ctx) => {
 bot_teacher.command('create_slot', async (ctx) => {
     await authUser(ctx, "TEACHER")
     await CommandsTeacher.handleCreateSlot(ctx)
+})
+bot_teacher.command('my_slots', async (ctx) => {
+    await authUser(ctx, "TEACHER")
+    if (!user) return ctx.reply('Вы не авторизованы')
+    await CommandsTeacher.handleMySlots(ctx)
 })
 
 bot_teacher.on('message', async (ctx) => {
@@ -156,7 +158,6 @@ bot_teacher.on('message', async (ctx) => {
         await CommandsTeacher.handleWelcome(ctx)
     } catch (e) {
         console.error(e)
-        ctx.answerCbQuery('Error occurred. Please try again.')
     }
 })
 
@@ -169,6 +170,7 @@ bot_teacher.on('callback_query', async (ctx) => {
         const handlers = {
             create_slot_form: CallbackQueries.handleCreateSlotForm,
             choose_subject_and_create_slot: CallbackQueries.handleChooseSubjectAndCreateSlot,
+            delete_slot: CallbackQueries.handleDeleteSlot,
         }
         const handler = handlers[key]
         await handler(ctx, ...values)
@@ -176,7 +178,6 @@ bot_teacher.on('callback_query', async (ctx) => {
         ctx.answerCbQuery()
     } catch (e) {
         console.error(e)
-        ctx.answerCbQuery('Error occurred. Please try again.')
     }
 })
 
