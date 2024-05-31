@@ -10,6 +10,7 @@ import SlotService from './services/SlotService.js'
 import SubjectService from './services/SubjectService.js'
 import TeacherService from './services/TeacherService.js'
 import AuthService from './services/AuthService.js'
+import { Teacher } from './models.js'
 
 dotenv.config()
 
@@ -20,6 +21,8 @@ initDatabase()
 
 export let inputSlotData = null
 export let times = null
+export let isSetFullDescription = false
+export let isSetShortDescription = false
 
 export let setTimes = (data) => {
   if (data === null) return (times = null)
@@ -30,7 +33,7 @@ export const setInputSlotData = (data) => {
   inputSlotData = data
 }
 
-const bot_student = new Telegraf(TOKEN_STUDENT, {})
+export const bot_student = new Telegraf(TOKEN_STUDENT, {})
 
 bot_student.telegram.setMyCommands(commandsStudent)
 
@@ -57,6 +60,7 @@ bot_student.on('callback_query', async (ctx) => {
     ctx.chat.id,
     ctx.chat.first_name,
     'STUDENT',
+    ctx.chat.username,
   )
 
   try {
@@ -73,6 +77,7 @@ bot_student.on('callback_query', async (ctx) => {
     }
     const handler = handlers[key]
     await handler(ctx, ...values)
+    await ctx.deleteMessage()
 
     ctx.answerCbQuery()
   } catch (e) {
@@ -84,10 +89,42 @@ bot_student.launch()
 
 // TEACHER
 
-const bot_teacher = new Telegraf(TOKEN_TEACHER, {})
+export const bot_teacher = new Telegraf(TOKEN_TEACHER, {})
 
+bot_teacher.command('change_short_description', async (ctx) => {
+  const user = await AuthService.authUser(
+    ctx.chat.id,
+    ctx.chat.first_name,
+    'TEACHER',
+    ctx.chat.username,
+  )
+
+  isSetShortDescription = true
+  ctx.reply(
+    `Текущее краткое описание: ${
+      user.description ?? ''
+    }\nВведите новое описание. \nДля отмены нажмите /cancel`,
+  )
+})
+bot_teacher.command('change_full_description', async (ctx) => {
+  const user = await AuthService.authUser(
+    ctx.chat.id,
+    ctx.chat.first_name,
+    'TEACHER',
+    ctx.chat.username,
+  )
+
+  isSetFullDescription = true
+  ctx.reply(
+    `Текущее полное описание: ${
+      user.fullDescription ?? ''
+    }\nВведите новое описание. \nДля отмены нажмите /cancel`,
+  )
+})
 bot_teacher.command('cancel', async (ctx) => {
   setInputSlotData(null)
+  isSetFullDescription = false
+  isSetShortDescription = false
 })
 bot_teacher.command('create_slot', async (ctx) => {
   await CommandsTeacher.handleCreateSlot(ctx)
@@ -97,13 +134,55 @@ bot_teacher.command('my_slots', async (ctx) => {
     ctx.chat.id,
     ctx.chat.first_name,
     'TEACHER',
+    ctx.chat.username,
   )
   if (!user.id) return ctx.reply('Вы не авторизованы')
   await CommandsTeacher.handleMySlots(ctx, user.id)
 })
 
 bot_teacher.on('message', async (ctx) => {
+  console.log(ctx.chat.username)
   try {
+    if (isSetShortDescription) {
+      const user = await AuthService.authUser(
+        ctx.chat.id,
+        ctx.chat.first_name,
+        'TEACHER',
+        ctx.chat.username,
+      )
+      const teacher = await Teacher.findByPk(user.id)
+      await Teacher.update(
+        { ...teacher, description: ctx.message.text },
+        {
+          where: {
+            id: teacher.id,
+          },
+        },
+      )
+      isSetShortDescription = false
+      ctx.reply('Краткое описание успешно применено')
+      return
+    }
+    if (isSetFullDescription) {
+      const user = await AuthService.authUser(
+        ctx.chat.id,
+        ctx.chat.first_name,
+        'TEACHER',
+        ctx.chat.username,
+      )
+      const teacher = await Teacher.findByPk(user.id)
+      await Teacher.update(
+        { ...teacher, fullDescription: ctx.message.text },
+        {
+          where: {
+            id: teacher.id,
+          },
+        },
+      )
+      isSetFullDescription = false
+      ctx.reply('Полное описание успешно применено')
+      return
+    }
     if (inputSlotData !== null) {
       if (!SlotService.validateSlotString(ctx.message.text)) {
         return ctx.reply(
@@ -135,6 +214,7 @@ bot_teacher.on('callback_query', async (ctx) => {
       ctx.chat.id,
       ctx.chat.first_name,
       'TEACHER',
+      ctx.chat.username,
     )
 
     const data = ctx.callbackQuery.data
@@ -149,11 +229,12 @@ bot_teacher.on('callback_query', async (ctx) => {
           user.id,
         ),
       delete_slot: CallbackQueries.handleDeleteSlot,
-      toggle_reservation: CallbackQueries.toggleReservation,
+      approve_reservation: CallbackQueries.approveReservation,
+      cancel_reservation: CallbackQueries.cancelReservation,
     }
     const handler = handlers[key]
-    console.log(handler)
     await handler(ctx, ...values)
+    await ctx.deleteMessage()
 
     ctx.answerCbQuery()
   } catch (e) {

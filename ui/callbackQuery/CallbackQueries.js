@@ -1,4 +1,10 @@
-import { Reservation, Teacher } from '../../models.js'
+import {
+  Reservation,
+  Slot,
+  Student,
+  SubjectTeacher,
+  Teacher,
+} from '../../models.js'
 import { dateRuFormatter } from '../../constants.js'
 import SubjectService from '../../services/SubjectService.js'
 import ReservationService from '../../services/ReservationService.js'
@@ -6,6 +12,8 @@ import SlotService from '../../services/SlotService.js'
 import SubjectTeacherService from '../../services/SubjectTeacherService.js'
 import TeacherService from '../../services/TeacherService.js'
 import {
+  bot_student,
+  bot_teacher,
   inputSlotData,
   setInputSlotData,
   setTimes,
@@ -126,6 +134,7 @@ class CallbackQueries {
 
   async handleCreateSlotForm(ctx, date) {
     setInputSlotData(date)
+
     ctx.reply(`Заявка на ${date}\nВведите время начала и конца занятия в формате:
 10:00-11:30`)
   }
@@ -170,20 +179,74 @@ class CallbackQueries {
     ctx.reply('Слот удален')
   }
 
-  async toggleReservation(ctx, reservationId) {
-    const reservation = await Reservation.findByPk(Number(reservationId))
-    reservation.approved = !reservation.approved
-    console.log(reservation)
+  async approveReservation(ctx, reservationId) {
+    const reservation = await Reservation.findByPk(Number(reservationId), {
+      raw: true,
+      nest: true,
+      include: [
+        Student,
+        {
+          model: Slot,
+          include: [
+            {
+              model: SubjectTeacher,
+              include: [Teacher],
+            },
+          ],
+        },
+      ],
+    })
+
+    reservation.approved = true
+
     await Reservation.update(reservation, {
       where: {
         id: reservation.id,
       },
     })
-    ctx.reply(
-      reservation.approved
-        ? 'Заявка успешно принята'
-        : 'Заявка успешно отклонена',
+    await ctx.deleteMessage()
+    ctx.reply('Заявка успешно принята')
+    await bot_student.telegram.sendMessage(
+      reservation.Student.id,
+      `@${reservation.Slot.SubjectTeacher.Teacher.username} принял у вас заявку\nНа время: ${reservation.Slot.startTime}:${reservation.Slot.endTime}, ${reservation.Slot.date}`,
     )
+  }
+
+  async cancelReservation(ctx, reservationId) {
+    const reservation = await Reservation.findByPk(Number(reservationId), {
+      raw: true,
+      nest: true,
+      include: [
+        Student,
+        {
+          model: Slot,
+          include: [
+            {
+              model: SubjectTeacher,
+              include: [Teacher],
+            },
+          ],
+        },
+      ],
+    })
+
+    if (!reservation) {
+      ctx.reply('Заявка уже отклонена')
+      return
+    }
+
+    Reservation.destroy({
+      where: {
+        id: reservation.id,
+      },
+    })
+
+    bot_student.telegram.sendMessage(
+      reservation.Student.id,
+      `@${reservation.Slot.SubjectTeacher.Teacher.username} отклонил у вас заявку\nНа время: ${reservation.Slot.startTime}:${reservation.Slot.endTime}, ${reservation.Slot.date}`,
+    )
+
+    ctx.reply('Заявка успешно отклонена')
   }
 }
 

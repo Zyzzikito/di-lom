@@ -18,4 +18,12 @@ export const commandsTeacher = [
     command: 'my_slots',
     description: 'Мои слоты',
   },
+  {
+    command: 'change_short_description',
+    description: 'Поменять краткое описание',
+  },
+  {
+    command: 'change_full_description',
+    description: 'Поменять полное описание',
+  },
 ]

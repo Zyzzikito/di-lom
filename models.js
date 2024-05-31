@@ -40,6 +40,9 @@ export const Teacher = sequelize.define('Teacher', {
   format: {
     type: DataTypes.STRING,
   },
+  username: {
+    type: DataTypes.STRING,
+  },
 })
 
 export const SubjectTeacher = sequelize.define('SubjectTeacher', {
@@ -103,6 +106,9 @@ export const Student = sequelize.define('Student', {
     type: DataTypes.INTEGER,
     primaryKey: true,
     unique: true,
+  },
+  username: {
+    type: DataTypes.STRING,
   },
 })
 export const Reservation = sequelize.define('Reservation', {

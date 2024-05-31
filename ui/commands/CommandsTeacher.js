@@ -29,15 +29,19 @@ class CommandsTeacher {
   async handleMySlots(ctx, userId) {
     const slots = await SlotService.getSlotsByTeacherId(userId)
 
-    console.log('handleMySlots ---- slots ----', JSON.stringify(slots, null, 2))
-
     if (slots.length === 0) {
       return ctx.reply('У вас нет слотов')
     }
 
     slots.forEach((slot) => {
       ctx.reply(
-        `Дата: ${slot.date}\nВремя: ${slot.startTime}-${slot.endTime}\nПредмет: ${slot.SubjectTeacher.Subject.name}`,
+        `Дата: ${slot.date}\nВремя: ${slot.startTime}-${
+          slot.endTime
+        }\nПредмет: ${slot.SubjectTeacher.Subject.name}\n\n${
+          slot?.Reservations?.id
+            ? '@' + slot.Reservations.Student.username + ' кинул заявку'
+            : ''
+        }`,
         {
           reply_markup: {
             inline_keyboard: [
@@ -48,14 +52,19 @@ class CommandsTeacher {
                 },
               ],
               slot.Reservations.id
-                ? [
-                    {
-                      text: slot.Reservations.approved
-                        ? 'Отклонить'
-                        : 'Принять',
-                      callback_data: `toggle_reservation:${slot.Reservations.id}`,
-                    },
-                  ]
+                ? slot.Reservations.approved
+                  ? [
+                      {
+                        text: 'Отклонить',
+                        callback_data: `cancel_reservation:${slot.Reservations.id}`,
+                      },
+                    ]
+                  : [
+                      {
+                        text: 'Принять',
+                        callback_data: `approve_reservation:${slot.Reservations.id}`,
+                      },
+                    ]
                 : [],
             ],
           },

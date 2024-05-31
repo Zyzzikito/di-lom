@@ -144,7 +144,8 @@ class SlotService {
         {
           model: Reservation,
           required: false,
-          include: [{ model: Student }],
+          order: [['id', 'ASC']],
+          include: [{ model: Student, required: false }],
         },
         {
           model: SubjectTeacher,
