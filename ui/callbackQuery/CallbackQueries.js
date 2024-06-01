@@ -29,21 +29,18 @@ class CallbackQueries {
     await ctx.reply(' 📘 Предмет: ' + subject.name)
 
     teachers.map((teacher) => {
-      ctx.reply(
-        teacher.name +
-          '\n' +
-          (teacher.description
-            ? teacher.description
-            : 'У пользователя нет описания'),
-        {
-          reply_markup: {
-            inline_keyboard: TeacherService.getTeacherKeyboard(
-              teacher.id,
-              subject.id,
-            ),
-          },
+      const description = teacher.description
+        ? teacher.description
+        : 'У пользователя нет описания'
+      const price = teacher.price ? teacher.price : 'Уточните у репетитора'
+      ctx.reply(teacher.name + '\n' + description + '\nСтоимость: ' + price, {
+        reply_markup: {
+          inline_keyboard: TeacherService.getTeacherKeyboard(
+            teacher.id,
+            subject.id,
+          ),
         },
-      )
+      })
     })
   }
 
@@ -204,7 +201,7 @@ class CallbackQueries {
         id: reservation.id,
       },
     })
-    await ctx.deleteMessage()
+    // await ctx.deleteMessage()
     ctx.reply('Заявка успешно принята')
     await bot_student.telegram.sendMessage(
       reservation.Student.id,

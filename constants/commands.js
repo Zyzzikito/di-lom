@@ -26,4 +26,8 @@ export const commandsTeacher = [
     command: 'change_full_description',
     description: 'Поменять полное описание',
   },
+  {
+    command: 'set_price',
+    description: 'Поменять стоимость услуг',
+  },
 ]

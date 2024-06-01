@@ -23,6 +23,7 @@ export let inputSlotData = null
 export let times = null
 export let isSetFullDescription = false
 export let isSetShortDescription = false
+export let isSetPrice = false
 
 export let setTimes = (data) => {
   if (data === null) return (times = null)
@@ -106,6 +107,21 @@ bot_teacher.command('change_short_description', async (ctx) => {
     }\nВведите новое описание. \nДля отмены нажмите /cancel`,
   )
 })
+bot_teacher.command('set_price', async (ctx) => {
+  const user = await AuthService.authUser(
+    ctx.chat.id,
+    ctx.chat.first_name,
+    'TEACHER',
+    ctx.chat.username,
+  )
+
+  isSetPrice = true
+  ctx.reply(
+    `Текущая стоимость: ${
+      user.price ?? 'Не указана'
+    }\nВведите новую стоимость услуг. \nДля отмены нажмите /cancel`,
+  )
+})
 bot_teacher.command('change_full_description', async (ctx) => {
   const user = await AuthService.authUser(
     ctx.chat.id,
@@ -125,6 +141,7 @@ bot_teacher.command('cancel', async (ctx) => {
   setInputSlotData(null)
   isSetFullDescription = false
   isSetShortDescription = false
+  isSetPrice = false
 })
 bot_teacher.command('create_slot', async (ctx) => {
   await CommandsTeacher.handleCreateSlot(ctx)
@@ -143,6 +160,27 @@ bot_teacher.command('my_slots', async (ctx) => {
 bot_teacher.on('message', async (ctx) => {
   console.log(ctx.chat.username)
   try {
+    if (isSetPrice) {
+      const user = await AuthService.authUser(
+        ctx.chat.id,
+        ctx.chat.first_name,
+        'TEACHER',
+        ctx.chat.username,
+      )
+      const teacher = await Teacher.findByPk(user.id)
+
+      await Teacher.update(
+        { ...teacher, price: ctx.message.text },
+        {
+          where: {
+            id: teacher.id,
+          },
+        },
+      )
+      isSetPrice = false
+      ctx.reply('Стоимость услуг успешно сохранена')
+      return
+    }
     if (isSetShortDescription) {
       const user = await AuthService.authUser(
         ctx.chat.id,

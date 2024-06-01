@@ -43,6 +43,9 @@ export const Teacher = sequelize.define('Teacher', {
   username: {
     type: DataTypes.STRING,
   },
+  price: {
+    type: DataTypes.STRING,
+  },
 })
 
 export const SubjectTeacher = sequelize.define('SubjectTeacher', {
